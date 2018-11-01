@@ -1,0 +1,16 @@
+group 'com.itgowo'
+version '1.0'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    maven { url 'http://maven.itgowo.com/repository/maven-public/'}
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.itgowo:ActionFramework:0.0.60'
+}
+
