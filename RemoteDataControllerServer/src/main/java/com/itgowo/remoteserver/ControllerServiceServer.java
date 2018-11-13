@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class ControllerServiceServer {
     public static final String HEART = "Heart";
     public static final String REQUEST_PROXY = "RequestProxy";
     public static final String REQUEST_PROXY_UPLOAD = "RequestProxyUpload";
+    public static final String REQUEST_PROXY_DOWNLOAD = "RequestProxyDownload";
     public static final String CLIENT = "Client";
     public static final String WEB = "Web";
     public static final String UID = "Uuid";
@@ -49,7 +51,7 @@ public class ControllerServiceServer {
         }
         cleanOfflineClient();
     });
-    private Logger logger = LogU.getLogU(getClass().getSimpleName(), Level.ALL);
+    private Logger logger = LogU.getLogU("RDC HttpServer", Level.ALL);
     /**
      * key为clientId;
      */
@@ -76,7 +78,7 @@ public class ControllerServiceServer {
     private void startSocketServer() {
         socketDispatcher.setControllerServiceServer(ControllerServiceServer.this);
         packageServerManager.setOnServerListener(socketDispatcher);
-        packageServerManager.setServerName(this.getClass().getSimpleName());
+        packageServerManager.setServerName("RDC HttpServer");
         packageServerManager.setThreadConfig(2, 4);
         try {
             packageServerManager.prepare(BaseConfig.getRDCServerDefaultPort());
@@ -88,7 +90,7 @@ public class ControllerServiceServer {
 
     private void startHttpServer() {
         httpServerManager = new HttpServerManager(webRootDir);
-        httpServerManager.setThreadConfig(2, 4);
+        httpServerManager.setThreadConfig(3, 10);
         httpServerManager.setServerName("RDC HttpServer");
         httpServerManager.setOnServerListener(new SimpleServerListener() {
             @Override
@@ -127,16 +129,30 @@ public class ControllerServiceServer {
                 }
             } else if (HttpMethod.GET.equalsIgnoreCase(handler.getHttpRequest().method().name())) {
                 String path = handler.getPath();
-                if (handler.getParameters().get("Uuid") != null) {
+
+                if (handler.getParameters().get("Uuid") != null && handler.getParameters().containsKey("uploadPath")) {
+                    //web文件上传后由app获取暂存文件
                     HttpServerHandler httpServerHandler = httpProxy.get(handler.getParameters().get("Uuid"));
                     if (httpServerHandler != null) {
                         if (httpServerHandler.getFileUploads().size() > 0) {
                             File file = httpServerHandler.getFileUploads().get(0);
                             String p = httpServerHandler.getParameters().get("uploadPath");
                             ServerManager.getLogger().info("ProxyFile:" + p);
-                            handler.sendRedirect(file.getAbsolutePath().replace(webRootDir, "") + "?uploadPath=" + p);
+                            handler.sendRedirect("/upload/" + URLEncoder.encode(file.getName(), "utf-8") + "?uploadPath=" + p);
                         }
                     }
+                } else if (handler.getParameters().containsKey("downloadFile")) {
+                    String clientID = handler.getParameters().get(CLIENTID);
+                    String downloadFile = handler.getParameters().get("downloadFile");
+                    Client client = clients.get(clientID);
+                    if (clientID == null || client == null || downloadFile == null) {
+                        handler.sendData(new Response().setCode(Response.code_Error).setMsg("未找到设备").toJson(), true);
+                        return;
+                    }
+                    httpProxy.put(downloadFile, handler);
+                    //向APP发送命令
+                    Command json = new Command().setAction(REQUEST_PROXY_DOWNLOAD).setData(downloadFile);
+                    sendCommand(client.getClientId(), json);
                 } else {
                     if (path.equalsIgnoreCase("") || path.startsWith("index.html")) {
                         path = "index.html";
@@ -167,22 +183,34 @@ public class ControllerServiceServer {
         if (uid == null || uid.trim().length() < 3) {
             return;
         }
-        String body = handler.getBody(Charset.defaultCharset());
-        try {
-            if (body == null || body.length() < 1) {
-                HttpServerHandler httpServerHandler = httpProxy.get(uid);
-                if (httpServerHandler != null) {
-                    handler.sendData(httpServerHandler.getBody(Charset.defaultCharset()), true);
+        if (handler.isMultipart()) {
+            HttpServerHandler httpServerHandler = httpProxy.remove(uid);
+            if (httpServerHandler != null) {
+                if (handler.getFileUploads() != null && !handler.getFileUploads().isEmpty()) {
+                    httpServerHandler.sendRedirect("/upload/" + handler.getFileUploads().get(0).getName());
                 }
+                ServerManager.getLogger().info("fromClient:" + handler.getFileUploads());
             } else {
-                HttpServerHandler httpServerHandler = httpProxy.remove(uid);
-                httpServerHandler.sendData(handler.getBody(Charset.defaultCharset()), true);
-                handler.sendData("", false);
+                ServerManager.getLogger().info("fromClient:不存在" + uid);
             }
-        } catch (Exception e) {
-            ServerManager.getLogger().warning(e.getLocalizedMessage());
+        } else {
+            String body = handler.getBody(Charset.defaultCharset());
+            try {
+                if (body == null || body.length() < 1) {
+                    HttpServerHandler httpServerHandler = httpProxy.get(uid);
+                    if (httpServerHandler != null) {
+                        handler.sendData(httpServerHandler.getBody(Charset.defaultCharset()), true);
+                    }
+                } else {
+                    HttpServerHandler httpServerHandler = httpProxy.remove(uid);
+                    httpServerHandler.sendData(handler.getBody(Charset.defaultCharset()), true);
+                    handler.sendData("", false);
+                }
+            } catch (Exception e) {
+                ServerManager.getLogger().warning(e.getLocalizedMessage());
+            }
+            ServerManager.getLogger().info("fromClient:" + body);
         }
-        ServerManager.getLogger().info("fromClient:" + body);
     }
 
     public void cleanOfflineClient() {
@@ -223,7 +251,7 @@ public class ControllerServiceServer {
         ServerManager.getLogger().info("fromWeb:" + body);
         Command command = JSON.parseObject(body, Command.class);
         if (command == null) {
-            handler.sendData(new Response().setCode(Response.code_Error).setMsg("数据错误").toJson(), true);
+            handler.sendData(new Response().setCode(Response.code_Error).setMsg("数据错误,无法解析" + handler).toJson(), true);
             return;
         }
         try {
@@ -237,7 +265,7 @@ public class ControllerServiceServer {
                     map.put("url", BaseConfig.getWebServerDefaultUrl());
                     map.put("clientId", client.getClientId());
                     String json = JSON.toJSONString(map);
-                    Response response=new Response().setData(json);
+                    Response response = new Response().setData(json);
                     handler.sendData(response.toJson(), true);
                 } else {
                     auth(command.getClientId(), command.getData(), BaseConfig.getWebServerDefaultUrl());
