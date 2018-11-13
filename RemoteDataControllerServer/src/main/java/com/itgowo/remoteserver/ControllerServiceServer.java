@@ -32,13 +32,14 @@ public class ControllerServiceServer {
     public static final String AUTH = "Auth";
     public static final String HEART = "Heart";
     public static final String REQUEST_PROXY = "RequestProxy";
+    public static final String REQUEST_PROXY_UPLOAD = "RequestProxyUpload";
     public static final String CLIENT = "Client";
     public static final String WEB = "Web";
     public static final String UID = "Uuid";
     public static final String CLIENTID = "ClientId";
     public static final String DOWNLOADFILE = "downloadFile";
     private String webRootDir = BaseConfig.getRDCServerWebRootDir() + File.separator;
-    private PackageServerManager packageServerManager=new PackageServerManager();
+    private PackageServerManager packageServerManager = new PackageServerManager();
     private HttpServerManager httpServerManager = ServerManager.getHttpServerManager();
     private Thread alarmThread = new Thread(() -> {
         try {
@@ -86,7 +87,7 @@ public class ControllerServiceServer {
     }
 
     private void startHttpServer() {
-        httpServerManager = new HttpServerManager();
+        httpServerManager = new HttpServerManager(webRootDir);
         httpServerManager.setThreadConfig(2, 4);
         httpServerManager.setServerName("RDC HttpServer");
         httpServerManager.setOnServerListener(new SimpleServerListener() {
@@ -126,18 +127,31 @@ public class ControllerServiceServer {
                 }
             } else if (HttpMethod.GET.equalsIgnoreCase(handler.getHttpRequest().method().name())) {
                 String path = handler.getPath();
-                if (path.equalsIgnoreCase("") || path.startsWith("index.html")) {
-                    path = "index.html";
-                }
-                File file = new File(path);
-                if (!file.exists()) {
-                    file = new File(webRootDir + path);
-                }
-                if (file.exists()) {
-                    handler.addHeaderToResponse(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=3600");
-                    handler.sendFile(file, true);
+                if (handler.getParameters().get("Uuid") != null) {
+                    HttpServerHandler httpServerHandler = httpProxy.get(handler.getParameters().get("Uuid"));
+                    if (httpServerHandler != null) {
+                        if (httpServerHandler.getFileUploads().size() > 0) {
+                            File file = httpServerHandler.getFileUploads().get(0);
+                            String p = httpServerHandler.getParameters().get("uploadPath");
+                            ServerManager.getLogger().info("ProxyFile:" + p);
+                            handler.sendRedirect(file.getAbsolutePath().replace(webRootDir, "") + "?uploadPath=" + p);
+                        }
+                    }
                 } else {
-                    handler.sendData(HttpResponseStatus.NOT_FOUND, "404 资源未找到", false);
+                    if (path.equalsIgnoreCase("") || path.startsWith("index.html")) {
+                        path = "index.html";
+                    }
+                    File file = new File(path);
+                    if (!file.exists()) {
+                        file = new File(webRootDir + path);
+                    }
+                    if (file.exists()) {
+//                    handler.addHeaderToResponse(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=3600");
+                        handler.addHeaderToResponse("oldUrl", handler.getUri());
+                        handler.sendFile(file, true);
+                    } else {
+                        handler.sendData(HttpResponseStatus.NOT_FOUND, "404 资源未找到", false);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -193,6 +207,18 @@ public class ControllerServiceServer {
             handler.sendData(new Response().setCode(Response.code_Error).setMsg("未找到设备").toJson(), true);
             return;
         }
+        if (handler.isMultipart()) {
+            String uid = UUID.randomUUID().toString();
+            httpProxy.put(uid, handler);
+            //向APP发送命令
+            Command json = new Command().setAction(REQUEST_PROXY_UPLOAD).setData(uid);
+            sendCommand(client.getClientId(), json);
+        } else {
+            doRequestWeb2(handler, client);
+        }
+    }
+
+    private void doRequestWeb2(HttpServerHandler handler, Client client) throws UnsupportedEncodingException {
         String body = handler.getBody(Charset.defaultCharset());
         ServerManager.getLogger().info("fromWeb:" + body);
         Command command = JSON.parseObject(body, Command.class);
@@ -211,7 +237,8 @@ public class ControllerServiceServer {
                     map.put("url", BaseConfig.getWebServerDefaultUrl());
                     map.put("clientId", client.getClientId());
                     String json = JSON.toJSONString(map);
-                    handler.sendData(json, true);
+                    Response response=new Response().setData(json);
+                    handler.sendData(response.toJson(), true);
                 } else {
                     auth(command.getClientId(), command.getData(), BaseConfig.getWebServerDefaultUrl());
                     client.setHttpHandler(handler);
@@ -221,8 +248,8 @@ public class ControllerServiceServer {
                     String uid = UUID.randomUUID().toString();
                     httpProxy.put(uid, handler);
                     //向APP发送命令
-                    Command json = new Command().setAction(REQUEST_PROXY).setData(uid) ;
-                    sendCommand(client.getClientId(),json);
+                    Command json = new Command().setAction(REQUEST_PROXY).setData(uid);
+                    sendCommand(client.getClientId(), json);
                 } else {
                     handler.sendData(new Response().setCode(Response.code_Error).setMsg("设备：" + client.getClientId() + " 未通过验证").toJson(), true);
                 }
@@ -246,8 +273,8 @@ public class ControllerServiceServer {
         if (!client.getHandler().getCtx().channel().isActive()) {
             return false;
         }
-        String json=JSON.toJSONString(command) ;
-        PackageMessage packageMessage=PackageMessage.getPackageMessage();
+        String json = JSON.toJSONString(command);
+        PackageMessage packageMessage = PackageMessage.getPackageMessage();
         packageMessage.setDataSign(PackageMessage.DATA_TYPE_JSON).setData(json.getBytes());
         client.getHandler().sendData(packageMessage);
         return true;

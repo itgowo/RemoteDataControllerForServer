@@ -81,12 +81,8 @@ public class SocketPackageDispatcher implements onServerListener<PackageServerHa
                                 client.setToken(response.getData());
                                 clients.put(handler.getCtx(), client.getClientId());
                                 if (client.getHttpHandler() != null) {
-                                    Map<String, Object> map = new HashMap<>();
-                                    map.put("url", BaseConfig.getWebServerDefaultUrl());
-                                    map.put("clientId", client.getClientId());
-                                    String json = JSON.toJSONString(map);
                                     try {
-                                        client.getHttpHandler().sendData(json, true);
+                                        client.getHttpHandler().sendData(new Response().toJson(), true);
                                         client.setHttpHandler(null);
                                     } catch (UnsupportedEncodingException e) {
                                         e.printStackTrace();
