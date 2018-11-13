@@ -193,6 +193,11 @@ public class ControllerServiceServer {
             } else {
                 ServerManager.getLogger().info("fromClient:不存在" + uid);
             }
+            try {
+                handler.sendData("", false);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
         } else {
             String body = handler.getBody(Charset.defaultCharset());
             try {
