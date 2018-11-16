@@ -6,6 +6,7 @@ public class BaseConfig extends com.itgowo.actionframework.base.BaseConfig {
     private static final String CONFIG_PROXY_SERVER_SLEEP_TIME = "ProxyServerSleepTime";
     private static final String CONFIG_RDC_SERVER_DEFAULT_PORT = "RDCServerDefaultPort";
     private static final String CONFIG_RDC_SERVER_WEB_ROOT = "RDCServerWebDir";
+    private static final String CONFIG_RDC_SERVER_WEB_CACHE_CONTROL = "RDCServerWebCacheControl";
 
     public static String getWebServerDefaultUrl() {
         return getProperty(CONFIG_WEB_SERVER_DEFAULT_URL, "");
@@ -25,5 +26,9 @@ public class BaseConfig extends com.itgowo.actionframework.base.BaseConfig {
 
     public static String getRDCServerWebRootDir() {
         return getProperty(CONFIG_RDC_SERVER_WEB_ROOT, "");
+    }
+
+    public static boolean getRDCServerWebCacheControl() {
+        return getProperty(CONFIG_RDC_SERVER_WEB_CACHE_CONTROL, true);
     }
 }

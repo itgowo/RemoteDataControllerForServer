@@ -112,7 +112,7 @@ public class SocketPackageDispatcher implements onServerListener<PackageServerHa
 
     @Override
     public void onChannelInactive(ChannelHandlerContext ctx) {
-
+        controllerServiceServer.cleanOfflineClinet();
     }
 
     @Override
