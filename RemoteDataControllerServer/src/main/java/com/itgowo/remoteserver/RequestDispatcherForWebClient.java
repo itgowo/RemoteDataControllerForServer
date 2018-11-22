@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.itgowo.remoteserver.ControllerServiceServer.*;
 
-public class RequestDispatcherWebClient {
+public class RequestDispatcherForWebClient {
     public static void doRequestWeb(HttpServerHandler handler, HashMap<String, HttpServerHandler> httpProxy, ConcurrentHashMap<String, Client> clients) throws IOException {
         if (handler.getHttpRequest().method() == HttpMethod.POST) {
             doRequestWebPOST(handler, httpProxy, clients);

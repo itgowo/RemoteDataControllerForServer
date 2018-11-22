@@ -7,6 +7,7 @@ public class BaseConfig extends com.itgowo.actionframework.base.BaseConfig {
     private static final String CONFIG_RDC_SERVER_DEFAULT_PORT = "RDCServerDefaultPort";
     private static final String CONFIG_RDC_SERVER_WEB_ROOT = "RDCServerWebDir";
     private static final String CONFIG_RDC_SERVER_WEB_CACHE_CONTROL = "RDCServerWebCacheControl";
+    private static final String CONFIG_RDC_SERVER_WEBAPP_FILE = "RDCServerWebAppFile";
 
     public static String getWebServerDefaultUrl() {
         return getProperty(CONFIG_WEB_SERVER_DEFAULT_URL, "");
@@ -30,5 +31,8 @@ public class BaseConfig extends com.itgowo.actionframework.base.BaseConfig {
 
     public static boolean getRDCServerWebCacheControl() {
         return getProperty(CONFIG_RDC_SERVER_WEB_CACHE_CONTROL, true);
+    }
+    public static String getRDCServerWebAppFile() {
+        return getProperty(CONFIG_RDC_SERVER_WEBAPP_FILE, "web_app.zip");
     }
 }

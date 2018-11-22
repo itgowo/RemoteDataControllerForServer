@@ -126,11 +126,6 @@ public class ControllerServiceServer {
     }
 
     public void cleanOfflineClinet() {
-        for (Map.Entry<String, Client> stringClientEntry : clients.entrySet()) {
-            if (stringClientEntry.getValue().isOffLine()) {
-
-            }
-        }
         Iterator<Map.Entry<String, Client>> iterator = clients.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Client> entry = iterator.next();

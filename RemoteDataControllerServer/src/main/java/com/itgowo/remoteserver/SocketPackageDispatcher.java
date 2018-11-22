@@ -9,7 +9,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.Map;
 
 import static com.itgowo.remoteserver.ControllerServiceServer.*;
 
@@ -41,7 +40,7 @@ public class SocketPackageDispatcher implements onServerListener<PackageServerHa
     }
 
     public void onReceived(PackageServerHandler handler) {
-        if (handler.getPackageMessage() == null ||handler.getPackageMessage().getData() == null|| handler.getPackageMessage().getData().readableBytes() < 2) {
+        if (handler.getPackageMessage() == null || handler.getPackageMessage().getData() == null || handler.getPackageMessage().getData().readableBytes() < 2) {
             return;
         }
         String string = new String(handler.getPackageMessage().getData().readableBytesArray());
@@ -68,7 +67,10 @@ public class SocketPackageDispatcher implements onServerListener<PackageServerHa
                 case CONNECTED:
                     if (response.getClientId() != null && response.getClientId().trim().length() > 0) {
                         controllerServiceServer.getClients().put(response.getClientId(), new Client(response.getClientId(), handler));
-                        listener.onAddCLient(response.getClientId());
+                        ServerManager.getLogger().info("添加设备：" + response.getClientId());
+                        if (listener != null) {
+                            listener.onAddCLient(response.getClientId());
+                        }
                         handler.sendData(handler.getPackageMessage());
                     }
                     break;
@@ -88,7 +90,10 @@ public class SocketPackageDispatcher implements onServerListener<PackageServerHa
                                         e.printStackTrace();
                                     }
                                 }
-                                listener.onAuthClient(client.getClientId(), client.getToken());
+                                ServerManager.getLogger().info("设备通过认证：" + client.getClientId());
+                                if (listener != null) {
+                                    listener.onAuthClient(client.getClientId(), client.getToken());
+                                }
                             } else {
                                 try {
                                     controllerServiceServer.getClients().get(response.getClientId()).getHttpHandler().sendData(string, true);

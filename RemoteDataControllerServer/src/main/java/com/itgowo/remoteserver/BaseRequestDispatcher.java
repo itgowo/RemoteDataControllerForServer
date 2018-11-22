@@ -29,7 +29,7 @@ public class BaseRequestDispatcher {
         if (handler.getPath().startsWith(CLIENT)) {
             RequestDispatcherForClient.doRequestClient(handler, httpProxy);
         } else if (handler.getPath().startsWith(WEB)) {
-            RequestDispatcherWebClient.doRequestWeb(handler, httpProxy, clients);
+            RequestDispatcherForWebClient.doRequestWeb(handler, httpProxy, clients);
         } else if (handler.getHttpRequest().method() == io.netty.handler.codec.http.HttpMethod.GET) {
             String path = handler.getPath();
             if (path.equalsIgnoreCase("") || path.startsWith("index.html")) {
