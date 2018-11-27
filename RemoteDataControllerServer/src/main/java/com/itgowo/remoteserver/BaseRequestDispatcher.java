@@ -8,6 +8,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.Map;
 
 import static com.itgowo.remoteserver.ControllerServiceServer.*;
@@ -32,6 +33,7 @@ public class BaseRequestDispatcher {
             RequestDispatcherForWebClient.doRequestWeb(handler, httpProxy, clients);
         } else if (handler.getHttpRequest().method() == io.netty.handler.codec.http.HttpMethod.GET) {
             String path = handler.getPath();
+            path = URLDecoder.decode(path, "utf-8");
             if (path.equalsIgnoreCase("") || path.startsWith("index.html")) {
                 path = "index.html";
             }

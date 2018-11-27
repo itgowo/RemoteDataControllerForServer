@@ -26,8 +26,8 @@ public class RequestDispatcherForClient extends BaseRequestDispatcher {
                     if (httpServerHandler.getFileUploads().size() > 0) {
                         File file = httpServerHandler.getFileUploads().get(0);
                         String p = httpServerHandler.getParameters().get("uploadPath");
-                        ServerManager.getLogger().info("ProxyFile:" + p);
-                        handler.sendRedirect("/upload/" + URLEncoder.encode(file.getName(), "utf-8") + "?uploadPath=" + URLEncoder.encode(p,"utf-8"));
+                        ServerManager.getLogger().info("客户端取走Web上传文件:" + p);
+                        handler.sendRedirect("/upload/" + URLEncoder.encode(file.getName(),"utf-8") + "?uploadPath=" + URLEncoder.encode(p,"utf-8"));
                     }
                 }
             }
@@ -48,9 +48,15 @@ public class RequestDispatcherForClient extends BaseRequestDispatcher {
             HttpServerHandler httpServerHandler = httpProxy.remove(uid);
             if (httpServerHandler != null) {
                 if (handler.getFileUploads() != null && !handler.getFileUploads().isEmpty()) {
-                    httpServerHandler.sendRedirect("/upload/" + handler.getFileUploads().get(0).getName());
+                    try {
+                        httpServerHandler.sendRedirect("/upload/" + URLEncoder.encode(handler.getFileUploads().get(0).getName(),"utf-8"));
+                        ServerManager.getLogger().info("客户端上传Web需求文件:" + handler.getFileUploads());
+                    } catch (UnsupportedEncodingException e) {
+                        ServerManager.getLogger().info("客户端上传Web需求文件:" + e.getLocalizedMessage());
+                    }
+
                 }
-                ServerManager.getLogger().info("fromClient:" + handler.getFileUploads());
+
             } else {
                 ServerManager.getLogger().info("fromClient:不存在" + uid);
             }
@@ -67,10 +73,11 @@ public class RequestDispatcherForClient extends BaseRequestDispatcher {
                     HttpServerHandler httpServerHandler = httpProxy.get(uid);
                     if (httpServerHandler != null) {
                         String s = httpServerHandler.getBody(Charset.defaultCharset());
-                        ServerManager.getLogger().info("HttpProxy:" + httpProxy.size()+"  "+s);
+                        ServerManager.getLogger().info("客户端请求代理数据包:" + httpProxy.size() + "  " + s);
                         handler.sendData(s, true);
                     }
                 } else {
+                    ServerManager.getLogger().info("客户端回复web:" + httpProxy.size());
                     HttpServerHandler httpServerHandler = httpProxy.remove(uid);
                     httpServerHandler.sendData(handler.getBody(Charset.defaultCharset()), true);
                     ServerManager.getLogger().info("HttpProxyRemove:" + httpProxy.size());
