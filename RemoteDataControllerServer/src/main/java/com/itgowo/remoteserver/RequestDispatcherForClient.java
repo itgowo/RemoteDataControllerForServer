@@ -2,12 +2,12 @@ package com.itgowo.remoteserver;
 
 import com.itgowo.actionframework.ServerManager;
 import com.itgowo.remoteserver.entry.Response;
+import com.itgowo.remoteserver.utils.URLEncoder;
 import com.itgowo.servercore.http.HttpServerHandler;
 import io.netty.handler.codec.http.HttpMethod;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 
@@ -49,6 +49,7 @@ public class RequestDispatcherForClient extends BaseRequestDispatcher {
             if (httpServerHandler != null) {
                 if (handler.getFileUploads() != null && !handler.getFileUploads().isEmpty()) {
                     try {
+
                         httpServerHandler.sendRedirect("/upload/" + URLEncoder.encode(handler.getFileUploads().get(0).getName(),"utf-8"));
                         ServerManager.getLogger().info("客户端上传Web需求文件:" + handler.getFileUploads());
                     } catch (UnsupportedEncodingException e) {
