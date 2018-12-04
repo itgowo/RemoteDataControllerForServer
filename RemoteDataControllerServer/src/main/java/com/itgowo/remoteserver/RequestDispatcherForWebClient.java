@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,9 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.itgowo.remoteserver.ControllerServiceServer.*;
 
 public class RequestDispatcherForWebClient {
+    public static final String DELETE_CLIENT="DeleteClient";
+    public static final String GETLIST_CLIENT="GetListClient";
     public static void doRequestWeb(HttpServerHandler handler, HashMap<String, HttpServerHandler> httpProxy, ConcurrentHashMap<String, Client> clients) throws IOException {
         if (handler.getHttpRequest().method() == HttpMethod.POST) {
-            doRequestWebPOST(handler, httpProxy, clients);
+                doRequestWebPOST(handler, httpProxy, clients);
         } else if (handler.getHttpRequest().method() == HttpMethod.GET) {
             if (handler.getParameters().containsKey("downloadFile")) {
                 String clientID = handler.getParameters().get(CLIENTID);
@@ -36,10 +39,11 @@ public class RequestDispatcherForWebClient {
                 Command json = new Command().setAction(REQUEST_PROXY_DOWNLOAD).setData(downloadFile);
                 sendCommand(client.getClientId(), json);
             }
-        } else {
+        }  else  {
             handler.sendData(new Response().setCode(Response.code_Error).setMsg("请求不存在").toJson(), true);
         }
     }
+
 
     public static void doRequestWebPOST(HttpServerHandler handler, HashMap<String, HttpServerHandler> httpProxy, ConcurrentHashMap<String, Client> clients) throws UnsupportedEncodingException {
         //获取请求地址ClientID参数
@@ -122,7 +126,7 @@ public class RequestDispatcherForWebClient {
         }
         String json = JSON.toJSONString(command);
         PackageMessage packageMessage = PackageMessage.getPackageMessage();
-        packageMessage.setDataSign(PackageMessage.DATA_TYPE_JSON).setData(json.getBytes());
+        packageMessage.setDataType(PackageMessage.DATA_TYPE_JSON).setData(json.getBytes());
         client.getHandler().sendData(packageMessage);
         return true;
     }

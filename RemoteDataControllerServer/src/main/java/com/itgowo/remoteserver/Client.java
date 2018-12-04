@@ -2,18 +2,21 @@ package com.itgowo.remoteserver;
 
 import com.itgowo.servercore.http.HttpServerHandler;
 import com.itgowo.servercore.packagesocket.PackageServerHandler;
-import com.itgowo.servercore.socket.SocketServerHandler;
 
 public class Client {
     private String clientId;
-    private PackageServerHandler handler;
-    private HttpServerHandler httpHandler;
+    private transient PackageServerHandler handler;
+    private transient HttpServerHandler httpHandler;
     private boolean auth = false;
     private String token;
-    private long lastMsgTime=System.currentTimeMillis();
+    private long lastMsgTime = System.currentTimeMillis();
 
     public void refreshLastMsgTime() {
         lastMsgTime = System.currentTimeMillis();
+    }
+
+    public long getLastMsgTime() {
+        return lastMsgTime;
     }
 
     public boolean isOffLine() {

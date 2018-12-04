@@ -15,13 +15,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ControllerServiceServer {
-    public static final long ALARMINTERVAL = 30 * 60 * 1000;
+    public static final long ALARMINTERVAL = 5 * 60;
     public static final String CONNECT = "Connect";
     public static final String CONNECTED = "Connected";
+    public static final String RECONNECTED = "ReConnected";
+    public static final String CLOSE = "Close";
+    public static final String ERROR = "Error";
     public static final String AUTH = "Auth";
     public static final String HEART = "Heart";
     public static final String REQUEST_PROXY = "RequestProxy";
@@ -29,6 +35,7 @@ public class ControllerServiceServer {
     public static final String REQUEST_PROXY_DOWNLOAD = "RequestProxyDownload";
     public static final String CLIENT = "Client";
     public static final String WEB = "Web";
+    public static final String COMMAND = "Command";
     public static final String UID = "Uuid";
     public static final String CLIENTID = "ClientId";
     public static final String DOWNLOADFILE = "downloadFile";
@@ -36,7 +43,7 @@ public class ControllerServiceServer {
 
     private PackageServerManager packageServerManager = new PackageServerManager();
     private HttpServerManager httpServerManager = ServerManager.getHttpServerManager();
-
+    private ScheduledExecutorService scheduledExecutorService=Executors.newScheduledThreadPool(0);
 
     /**
      * key为clientId;
@@ -64,7 +71,12 @@ public class ControllerServiceServer {
         ServerManager.setLogger(logger);
         startHttpServer();
         startSocketServer();
-
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                BaseRequestDispatcher.cleanOfflineClinet();
+            }
+        },ALARMINTERVAL,ALARMINTERVAL,TimeUnit.SECONDS);
     }
 
     private void startSocketServer() {
@@ -123,17 +135,9 @@ public class ControllerServiceServer {
 
     public void stop() {
         packageServerManager.stop();
+        httpServerManager.stop();
+        scheduledExecutorService.shutdownNow();
     }
 
-    public void cleanOfflineClinet() {
-        Iterator<Map.Entry<String, Client>> iterator = clients.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Client> entry = iterator.next();
-            if (entry.getValue().isOffLine()) {
-                ServerManager.getLogger().info("cleanClient:" + entry.getValue().getClientId());
-                iterator.remove();
-            }
-        }
 
-    }
 }

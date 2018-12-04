@@ -49,7 +49,6 @@ public class RequestDispatcherForClient extends BaseRequestDispatcher {
             if (httpServerHandler != null) {
                 if (handler.getFileUploads() != null && !handler.getFileUploads().isEmpty()) {
                     try {
-
                         httpServerHandler.sendRedirect("/upload/" + URLEncoder.encode(handler.getFileUploads().get(0).getName(),"utf-8"));
                         ServerManager.getLogger().info("客户端上传Web需求文件:" + handler.getFileUploads());
                     } catch (UnsupportedEncodingException e) {

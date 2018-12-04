@@ -9,21 +9,23 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.util.Iterator;
 import java.util.Map;
 
 import static com.itgowo.remoteserver.ControllerServiceServer.*;
 
 public class BaseRequestDispatcher {
 
-    public static void cleanOfflineClient() {
-        for (Map.Entry<String, Client> stringClientEntry : clients.entrySet()) {
-            if (stringClientEntry.getValue().isOffLine()) {
-                clients.remove(stringClientEntry.getKey());
-                ServerManager.getLogger().info("Clean Client:" + stringClientEntry.getValue().getClientId());
+    public static void cleanOfflineClinet() {
+        Iterator<Map.Entry<String, Client>> iterator = clients.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Client> entry = iterator.next();
+            if (entry.getValue().isOffLine()) {
+                ServerManager.getLogger().info("cleanClient:" + entry.getValue().getClientId());
+                iterator.remove();
             }
         }
     }
-
 
     public static void dispatcherTask(HttpServerHandler handler) throws IOException {
 
@@ -31,6 +33,8 @@ public class BaseRequestDispatcher {
             RequestDispatcherForClient.doRequestClient(handler, httpProxy);
         } else if (handler.getPath().startsWith(WEB)) {
             RequestDispatcherForWebClient.doRequestWeb(handler, httpProxy, clients);
+        } else if (handler.getPath().startsWith(COMMAND)) {
+            RequestDispatcherForCommand.doRequestWebCommand(handler,httpProxy,clients);
         } else if (handler.getHttpRequest().method() == io.netty.handler.codec.http.HttpMethod.GET) {
             String path = handler.getPath();
             path = URLDecoder.decode(path, "utf-8");
